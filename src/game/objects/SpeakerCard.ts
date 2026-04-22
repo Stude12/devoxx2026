@@ -1,10 +1,10 @@
 import * as Phaser from 'phaser';
-import { Speaker } from '../types/Speaker';
+import { Speaker, CARD_DIMENSIONS } from '../types/Speaker';
 
 export class SpeakerCard extends Phaser.Physics.Arcade.Sprite {
     speaker: Speaker;
-    cardWidth: number = 140;
-    cardHeight: number = 180;
+    cardWidth: number;
+    cardHeight: number;
     isDestroyed: boolean = false;
     isSlashed: boolean = false;
     hitZone: Phaser.Geom.Rectangle;
@@ -13,6 +13,10 @@ export class SpeakerCard extends Phaser.Physics.Arcade.Sprite {
         super(scene, x, y, 'card-placeholder');
 
         this.speaker = speaker;
+
+        const dims = CARD_DIMENSIONS[speaker.size];
+        this.cardWidth = dims.width;
+        this.cardHeight = dims.height;
         
         scene.add.existing(this);
         scene.physics.add.existing(this);
@@ -60,28 +64,37 @@ export class SpeakerCard extends Phaser.Physics.Arcade.Sprite {
         this.setTexture(textureKey);
         this.setDisplaySize(w, h);
 
-        // Add text on top
-        const nameText = this.scene.add.text(this.x, this.y - 40, this.speaker.name.substring(0, 15), {
+        // Add text on top - positions relative to card size
+        const nameFontSize = this.cardWidth < 120 ? 9 : this.cardWidth > 160 ? 14 : 11;
+        const topicFontSize = this.cardWidth < 120 ? 8 : this.cardWidth > 160 ? 12 : 10;
+        const pointsFontSize = this.cardWidth < 120 ? 11 : this.cardWidth > 160 ? 16 : 13;
+        const nameMaxChars = this.cardWidth < 120 ? 12 : this.cardWidth > 160 ? 20 : 15;
+        const topicMaxChars = this.cardWidth < 120 ? 12 : this.cardWidth > 160 ? 22 : 16;
+        const nameOffsetY = -this.cardHeight * 0.22;
+        const topicOffsetY = 0;
+        const pointsOffsetY = this.cardHeight * 0.25;
+
+        const nameText = this.scene.add.text(this.x, this.y + nameOffsetY, this.speaker.name.substring(0, nameMaxChars), {
             fontFamily: 'Arial Black',
-            fontSize: 11,
+            fontSize: nameFontSize,
             color: '#ffffff',
             align: 'center',
             backgroundColor: this.speaker.color,
             padding: { x: 5, y: 3 }
         }).setOrigin(0.5).setDepth(11);
 
-        const topicText = this.scene.add.text(this.x, this.y, this.speaker.topic.substring(0, 16), {
+        const topicText = this.scene.add.text(this.x, this.y + topicOffsetY, this.speaker.topic.substring(0, topicMaxChars), {
             fontFamily: 'Arial',
-            fontSize: 10,
+            fontSize: topicFontSize,
             color: '#ffffff',
             align: 'center',
             backgroundColor: '#000000',
             padding: { x: 3, y: 2 }
         }).setOrigin(0.5).setDepth(11);
 
-        const pointsText = this.scene.add.text(this.x, this.y + 45, `+${this.speaker.points}`, {
+        const pointsText = this.scene.add.text(this.x, this.y + pointsOffsetY, `+${this.speaker.points}`, {
             fontFamily: 'Arial Black',
-            fontSize: 13,
+            fontSize: pointsFontSize,
             color: '#FFD700',
             align: 'center'
         }).setOrigin(0.5).setDepth(11);
@@ -106,9 +119,9 @@ export class SpeakerCard extends Phaser.Physics.Arcade.Sprite {
         const topicText = (this as any).topicText;
         const pointsText = (this as any).pointsText;
 
-        if (nameText) nameText.setPosition(this.x, this.y - 40);
+        if (nameText) nameText.setPosition(this.x, this.y - this.cardHeight * 0.22);
         if (topicText) topicText.setPosition(this.x, this.y);
-        if (pointsText) pointsText.setPosition(this.x, this.y + 45);
+        if (pointsText) pointsText.setPosition(this.x, this.y + this.cardHeight * 0.25);
     }
 
     containsPoint(x: number, y: number): boolean {
@@ -195,10 +208,10 @@ export class SpeakerCard extends Phaser.Physics.Arcade.Sprite {
         graphics.setDepth(100);
         graphics.lineStyle(3, 0xFF6B6B, 1);
         
-        const startX = this.x - 50;
-        const startY = this.y - 60;
-        const endX = this.x + 50;
-        const endY = this.y + 60;
+        const startX = this.x - this.cardWidth * 0.35;
+        const startY = this.y - this.cardHeight * 0.33;
+        const endX = this.x + this.cardWidth * 0.35;
+        const endY = this.y + this.cardHeight * 0.33;
 
         graphics.beginPath();
         graphics.moveTo(startX, startY);

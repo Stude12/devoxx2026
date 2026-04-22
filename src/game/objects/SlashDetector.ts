@@ -4,8 +4,9 @@ export class SlashDetector {
     scene: Phaser.Scene;
     slashTrail: Array<{ x: number; y: number }> = [];
     minSlashLength: number = 20;
-    maxTrailLength: number = 30;
+    maxTrailLength: number = 50;
     isSlashing: boolean = false;
+    slashReady: boolean = false;
 
     constructor(scene: Phaser.Scene) {
         this.scene = scene;
@@ -15,15 +16,19 @@ export class SlashDetector {
     private setupInput() {
         this.scene.input.on('pointerdown', () => {
             this.isSlashing = true;
+            this.slashReady = false;
             this.slashTrail = [];
         });
 
         this.scene.input.on('pointerup', () => {
+            if (this.isSlashing && this.slashTrail.length >= 2) {
+                this.slashReady = true;
+            }
             this.isSlashing = false;
         });
 
         this.scene.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
-            if (this.isSlashing) {
+            if (this.isSlashing && pointer.isDown) {
                 this.slashTrail.push({ x: pointer.x, y: pointer.y });
                 
                 if (this.slashTrail.length > this.maxTrailLength) {
@@ -31,6 +36,10 @@ export class SlashDetector {
                 }
             }
         });
+    }
+
+    hasSlashReady(): boolean {
+        return this.slashReady && this.isValidSlash();
     }
 
     isValidSlash(): boolean {
@@ -52,6 +61,17 @@ export class SlashDetector {
         };
     }
 
+    getSlashSegments(): Array<{ start: { x: number; y: number }; end: { x: number; y: number } }> {
+        const segments: Array<{ start: { x: number; y: number }; end: { x: number; y: number } }> = [];
+        for (let i = 0; i < this.slashTrail.length - 1; i++) {
+            segments.push({
+                start: this.slashTrail[i],
+                end: this.slashTrail[i + 1]
+            });
+        }
+        return segments;
+    }
+
     getSlashPoints(): Array<{ x: number; y: number }> {
         return [...this.slashTrail];
     }
@@ -59,5 +79,6 @@ export class SlashDetector {
     reset() {
         this.slashTrail = [];
         this.isSlashing = false;
+        this.slashReady = false;
     }
 }

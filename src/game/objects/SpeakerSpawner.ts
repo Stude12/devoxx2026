@@ -1,5 +1,5 @@
 import * as Phaser from 'phaser';
-import { SPEAKERS } from '../types/Speaker';
+import { SPEAKERS, CARD_DIMENSIONS } from '../types/Speaker';
 import { SpeakerCard } from './SpeakerCard';
 
 export class SpeakerSpawner {
@@ -46,13 +46,16 @@ export class SpeakerSpawner {
 
     private spawn() {
         const randomSpeaker = Phaser.Utils.Array.GetRandom(SPEAKERS);
-        const x = Phaser.Math.Between(120, this.scene.scale.width - 120);
-        const y = -60;
+        const dims = CARD_DIMENSIONS[randomSpeaker.size];
+        const margin = dims.width / 2 + 20;
+        const x = Phaser.Math.Between(margin, this.scene.scale.width - margin);
+        const y = -dims.height / 2;
 
         const card = new SpeakerCard(this.scene, x, y, randomSpeaker);
         
-        // Increase fall speed based on difficulty
-        const speedMultiplier = 1 + (this.elapsedTime / 60000); // +1% every minute
+        // Smaller cards fall faster (harder to hit)
+        const sizeSpeedBonus = randomSpeaker.size === 'small' ? 1.3 : randomSpeaker.size === 'large' ? 0.8 : 1;
+        const speedMultiplier = (1 + (this.elapsedTime / 60000)) * sizeSpeedBonus;
         card.body!.setVelocityY(150 * speedMultiplier);
         
         this.activeCards.push(card);

@@ -5,11 +5,9 @@ import { EventBus } from '../EventBus';
 export class MainMenu extends Scene
 {
     background: GameObjects.Image;
-    logo: GameObjects.Image;
     title: GameObjects.Text;
     playButton: GameObjects.Text;
     subtitle: GameObjects.Text;
-    logoTween: Phaser.Tweens.Tween | null;
 
     constructor ()
     {
@@ -60,7 +58,10 @@ export class MainMenu extends Scene
              this.changeScene();
          });
 
-        this.logo = this.add.image(512, 600, 'logo').setDepth(100).setScale(0.5).setAlpha(0);
+        const devoxxText = this.add.text(512, 550, 'Devoxx France 2026', {
+            fontFamily: 'Arial', fontSize: 20, color: '#666666',
+            align: 'center'
+        }).setOrigin(0.5).setDepth(100).setAlpha(0);
 
         // Animate in on create
         this.tweens.add({
@@ -89,38 +90,20 @@ export class MainMenu extends Scene
         });
 
         this.tweens.add({
-            targets: this.logo,
-            alpha: 1,
+            targets: devoxxText,
+            alpha: 0.8,
             delay: 450,
             duration: 600,
             ease: 'Quad.easeOut'
         });
 
-        this.animateLogo();
-
         EventBus.emit('current-scene-ready', this);
-    }
-
-    animateLogo ()
-    {
-        this.logoTween = this.tweens.add({
-            targets: this.logo,
-            y: { value: 570, duration: 1200, ease: 'Sine.inOut' },
-            yoyo: true,
-            repeat: -1
-        });
     }
     
     changeScene ()
     {
-        if (this.logoTween)
-        {
-            this.logoTween.stop();
-            this.logoTween = null;
-        }
-
         this.tweens.add({
-            targets: [this.title, this.subtitle, this.playButton, this.logo],
+            targets: [this.title, this.subtitle, this.playButton],
             alpha: 0,
             duration: 400,
             ease: 'Quad.easeIn',
