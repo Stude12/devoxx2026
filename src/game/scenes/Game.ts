@@ -98,34 +98,29 @@ export class Game extends Scene
             this.feedbackRenderer.drawTrail(points);
         }
 
-        // Check for slashes when the pointerup event fires
-        if (!this.slashDetector.isSlashing && this.slashDetector.isValidSlash()) {
+        // Check for slashes when pointer is released and slash is ready
+        if (this.slashDetector.hasSlashReady()) {
             const slashLine = this.slashDetector.getSlashLine();
             if (slashLine) {
                 this.feedbackRenderer.drawSlashLine(slashLine.start, slashLine.end);
-                this.checkSlashesOnLine(slashLine.start, slashLine.end);
+                this.checkSlashesOnTrail();
             }
             this.slashDetector.reset();
         }
     }
 
-    private checkSlashesOnLine(start: { x: number; y: number }, end: { x: number; y: number }) {
+    private checkSlashesOnTrail() {
         const cards = this.spawner.getActiveCards();
+        const segments = this.slashDetector.getSlashSegments();
         const slashedCards: SpeakerCard[] = [];
 
         for (const card of cards) {
             if (card.isDestroyed || card.isSlashed || !card.scene) continue;
 
-            if (this.isCardOnSlashLine(card, start, end)) {
+            if (this.isCardHitByTrail(card, segments)) {
                 slashedCards.push(card);
             }
         }
-
-        slashedCards.sort((a, b) => {
-            const distA = this.distanceToLine(a, start, end);
-            const distB = this.distanceToLine(b, start, end);
-            return distA - distB;
-        });
 
         if (slashedCards.length > 0) {
             this.audioManager.playSlash();
@@ -148,15 +143,61 @@ export class Game extends Scene
         }
     }
 
-    private isCardOnSlashLine(card: SpeakerCard, start: { x: number; y: number }, end: { x: number; y: number }): boolean {
-        const distance = this.distanceToLine(card, start, end);
-        return distance < 40;
+    private isCardHitByTrail(card: SpeakerCard, segments: Array<{ start: { x: number; y: number }; end: { x: number; y: number } }>): boolean {
+        const toleranceX = card.cardWidth / 2;
+        const toleranceY = card.cardHeight / 2;
+
+        for (const seg of segments) {
+            if (this.segmentIntersectsRect(
+                seg.start.x, seg.start.y, seg.end.x, seg.end.y,
+                card.x - toleranceX, card.y - toleranceY,
+                card.x + toleranceX, card.y + toleranceY
+            )) {
+                return true;
+            }
+        }
+
+        // Fallback: check full start→end line with generous distance
+        const slashLine = this.slashDetector.getSlashLine();
+        if (slashLine) {
+            const dist = this.distanceToLine(card, slashLine.start, slashLine.end);
+            if (dist < 70) return true;
+        }
+
+        return false;
+    }
+
+    private segmentIntersectsRect(
+        x1: number, y1: number, x2: number, y2: number,
+        left: number, top: number, right: number, bottom: number
+    ): boolean {
+        if (x1 >= left && x1 <= right && y1 >= top && y1 <= bottom) return true;
+        if (x2 >= left && x2 <= right && y2 >= top && y2 <= bottom) return true;
+
+        if (this.linesIntersect(x1, y1, x2, y2, left, top, right, top)) return true;
+        if (this.linesIntersect(x1, y1, x2, y2, right, top, right, bottom)) return true;
+        if (this.linesIntersect(x1, y1, x2, y2, left, bottom, right, bottom)) return true;
+        if (this.linesIntersect(x1, y1, x2, y2, left, top, left, bottom)) return true;
+
+        return false;
+    }
+
+    private linesIntersect(
+        x1: number, y1: number, x2: number, y2: number,
+        x3: number, y3: number, x4: number, y4: number
+    ): boolean {
+        const denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
+        if (Math.abs(denom) < 0.001) return false;
+
+        const t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / denom;
+        const u = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / denom;
+
+        return t >= 0 && t <= 1 && u >= 0 && u <= 1;
     }
 
     private distanceToLine(card: SpeakerCard, start: { x: number; y: number }, end: { x: number; y: number }): number {
         const px = card.x;
         const py = card.y;
-
         const dx = end.x - start.x;
         const dy = end.y - start.y;
         const len2 = dx * dx + dy * dy;
@@ -168,7 +209,6 @@ export class Game extends Scene
 
         const closestX = start.x + t * dx;
         const closestY = start.y + t * dy;
-
         return PhaserMath.Distance.Between(px, py, closestX, closestY);
     }
 
