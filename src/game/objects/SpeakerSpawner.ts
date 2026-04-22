@@ -22,6 +22,14 @@ export class SpeakerSpawner {
         this.scene = scene;
     }
 
+    /** Scale factor based on current score: 1.0 → 0.5 as score increases */
+    getScaleFactor(): number {
+        const gameScene = this.scene as any;
+        const score = gameScene.score || 0;
+        // Shrink from 1.0 to 0.5 over 5000 points
+        return Math.max(0.5, 1 - (score / 10000));
+    }
+
     update(delta: number) {
         this.elapsedTime += delta;
         this.spawnTimer += delta;
@@ -69,11 +77,12 @@ export class SpeakerSpawner {
     private spawnSpeaker() {
         const randomSpeaker = Phaser.Utils.Array.GetRandom(SPEAKERS);
         const dims = CARD_DIMENSIONS[randomSpeaker.size];
-        const margin = dims.width / 2 + 20;
+        const scaleFactor = this.getScaleFactor();
+        const margin = (dims.width * scaleFactor) / 2 + 20;
         const x = Phaser.Math.Between(margin, this.scene.scale.width - margin);
         const y = -dims.height / 2;
 
-        const card = new SpeakerCard(this.scene, x, y, randomSpeaker);
+        const card = new SpeakerCard(this.scene, x, y, randomSpeaker, scaleFactor);
         
         const sizeSpeedBonus = randomSpeaker.size === 'small' ? 1.3 : randomSpeaker.size === 'large' ? 0.8 : 1;
         const speedMultiplier = (1 + (this.elapsedTime / 60000)) * sizeSpeedBonus;
@@ -85,11 +94,12 @@ export class SpeakerSpawner {
 
     private spawnTrap() {
         const randomTrap = Phaser.Utils.Array.GetRandom(TRAP_ITEMS);
-        const margin = 80;
+        const scaleFactor = this.getScaleFactor();
+        const margin = (60 * scaleFactor) + 20;
         const x = Phaser.Math.Between(margin, this.scene.scale.width - margin);
         const y = -70;
 
-        const trap = new TrapCard(this.scene, x, y, randomTrap);
+        const trap = new TrapCard(this.scene, x, y, randomTrap, scaleFactor);
 
         // Traps fall a bit slower to give time to recognize
         const speedMultiplier = (1 + (this.elapsedTime / 60000)) * 0.85;

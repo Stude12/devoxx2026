@@ -1,12 +1,13 @@
 import * as Phaser from 'phaser';
 import { TrapItem } from '../types/TrapItem';
 
-const TRAP_SIZE = { width: 120, height: 120 };
+const TRAP_BASE_SIZE = { width: 120, height: 120 };
 
 export class TrapCard extends Phaser.Physics.Arcade.Sprite {
     trapItem: TrapItem;
     cardWidth: number;
     cardHeight: number;
+    scaleFactor: number;
     isDestroyed: boolean = false;
     isSlashed: boolean = false;
     isTrap: boolean = true;
@@ -17,12 +18,13 @@ export class TrapCard extends Phaser.Physics.Arcade.Sprite {
     private warningText: Phaser.GameObjects.Text;
     private wobbleTween: Phaser.Tweens.Tween | null = null;
 
-    constructor(scene: Phaser.Scene, x: number, y: number, trapItem: TrapItem) {
+    constructor(scene: Phaser.Scene, x: number, y: number, trapItem: TrapItem, scaleFactor: number = 1) {
         super(scene, x, y, 'card-placeholder');
 
         this.trapItem = trapItem;
-        this.cardWidth = TRAP_SIZE.width;
-        this.cardHeight = TRAP_SIZE.height;
+        this.scaleFactor = scaleFactor;
+        this.cardWidth = Math.round(TRAP_BASE_SIZE.width * scaleFactor);
+        this.cardHeight = Math.round(TRAP_BASE_SIZE.height * scaleFactor);
 
         scene.add.existing(this);
         scene.physics.add.existing(this);
@@ -72,22 +74,25 @@ export class TrapCard extends Phaser.Physics.Arcade.Sprite {
         this.setDisplaySize(w, h);
 
         // Emoji
+        const emojiFontSize = Math.round(36 * this.scaleFactor);
         this.emojiText = this.scene.add.text(this.x, this.y - 15, this.trapItem.emoji, {
-            fontSize: 36,
+            fontSize: emojiFontSize,
             align: 'center'
         }).setOrigin(0.5).setDepth(11);
 
         // Name
+        const nameFontSize = Math.round(10 * this.scaleFactor);
         this.nameText = this.scene.add.text(this.x, this.y + 25, this.trapItem.name, {
             fontFamily: 'Arial Black',
-            fontSize: 10,
+            fontSize: nameFontSize,
             color: '#FF6666',
             align: 'center'
         }).setOrigin(0.5).setDepth(11);
 
         // Warning icon
+        const warningFontSize = Math.round(14 * this.scaleFactor);
         this.warningText = this.scene.add.text(this.x, this.y - this.cardHeight / 2 + 10, '⚠️', {
-            fontSize: 14,
+            fontSize: warningFontSize,
             align: 'center'
         }).setOrigin(0.5).setDepth(12);
     }

@@ -5,18 +5,20 @@ export class SpeakerCard extends Phaser.Physics.Arcade.Sprite {
     speaker: Speaker;
     cardWidth: number;
     cardHeight: number;
+    scaleFactor: number;
     isDestroyed: boolean = false;
     isSlashed: boolean = false;
     hitZone: Phaser.Geom.Rectangle;
 
-    constructor(scene: Phaser.Scene, x: number, y: number, speaker: Speaker) {
+    constructor(scene: Phaser.Scene, x: number, y: number, speaker: Speaker, scaleFactor: number = 1) {
         super(scene, x, y, 'card-placeholder');
 
         this.speaker = speaker;
+        this.scaleFactor = scaleFactor;
 
         const dims = CARD_DIMENSIONS[speaker.size];
-        this.cardWidth = dims.width;
-        this.cardHeight = dims.height;
+        this.cardWidth = Math.round(dims.width * scaleFactor);
+        this.cardHeight = Math.round(dims.height * scaleFactor);
         
         scene.add.existing(this);
         scene.physics.add.existing(this);
