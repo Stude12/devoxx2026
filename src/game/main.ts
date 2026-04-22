@@ -31,7 +31,12 @@ const config: Phaser.Types.Core.GameConfig = {
 
 const StartGame = (parent: string) => {
 
-    return new Game({ ...config, parent });
+    const game = new Game({ ...config, parent });
+
+    // Expose for E2E testing
+    (window as any).__PHASER_GAME__ = game;
+
+    return game;
 
 }
 
