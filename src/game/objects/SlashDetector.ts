@@ -21,10 +21,14 @@ export class SlashDetector {
         });
 
         this.scene.input.on('pointerup', () => {
-            if (this.isSlashing && this.slashTrail.length >= 2) {
-                this.slashReady = true;
+            this.endSlash();
+        });
+
+        // End slash when cursor leaves the game canvas
+        this.scene.game.canvas.addEventListener('pointerleave', () => {
+            if (this.isSlashing) {
+                this.endSlash();
             }
-            this.isSlashing = false;
         });
 
         this.scene.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
@@ -36,6 +40,13 @@ export class SlashDetector {
                 }
             }
         });
+    }
+
+    private endSlash() {
+        if (this.isSlashing && this.slashTrail.length >= 2) {
+            this.slashReady = true;
+        }
+        this.isSlashing = false;
     }
 
     hasSlashReady(): boolean {
