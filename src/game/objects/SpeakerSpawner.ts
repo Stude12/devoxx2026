@@ -1,16 +1,22 @@
 import * as Phaser from 'phaser';
 import { SPEAKERS, CARD_DIMENSIONS } from '../types/Speaker';
+import { TRAP_ITEMS } from '../types/TrapItem';
 import { SpeakerCard } from './SpeakerCard';
+import { TrapCard } from './TrapCard';
+
+export type FallingCard = SpeakerCard | TrapCard;
 
 export class SpeakerSpawner {
     scene: Phaser.Scene;
-    activeCards: SpeakerCard[] = [];
-    spawnInterval: number = 1400; // Start slower for fun
+    activeCards: FallingCard[] = [];
+    spawnInterval: number = 1400;
     spawnTimer: number = 0;
     spawnRateIncrease: number = 0;
     cardsSpawned: number = 0;
-    maxDifficulty: number = 700; // Minimum spawn interval
+    trapsSpawned: number = 0;
+    maxDifficulty: number = 700;
     elapsedTime: number = 0;
+    trapChance: number = 0.12; // 12% base chance
 
     constructor(scene: Phaser.Scene) {
         this.scene = scene;
@@ -27,7 +33,7 @@ export class SpeakerSpawner {
         const currentInterval = Math.max(this.maxDifficulty, this.spawnInterval - this.spawnRateIncrease);
 
         if (this.spawnTimer >= currentInterval) {
-            this.spawn();
+            this.spawnItem();
             this.spawnTimer = 0;
         }
 
@@ -37,14 +43,30 @@ export class SpeakerSpawner {
             if (card.isDestroyed || !card.active || !card.scene) {
                 this.activeCards.splice(i, 1);
             } else if (card.isMissed()) {
+                const isTrap = 'isTrap' in card && card.isTrap;
                 card.destroy();
                 this.activeCards.splice(i, 1);
-                this.scene.events.emit('card-missed');
+                // Only emit card-missed for speaker cards, not traps
+                if (!isTrap) {
+                    this.scene.events.emit('card-missed');
+                }
             }
         }
     }
 
-    private spawn() {
+    private spawnItem() {
+        // Trap chance increases with difficulty (12% → 25% max)
+        const difficultyStage = Math.floor(this.elapsedTime / 15000);
+        const currentTrapChance = Math.min(0.25, this.trapChance + difficultyStage * 0.02);
+
+        if (Math.random() < currentTrapChance) {
+            this.spawnTrap();
+        } else {
+            this.spawnSpeaker();
+        }
+    }
+
+    private spawnSpeaker() {
         const randomSpeaker = Phaser.Utils.Array.GetRandom(SPEAKERS);
         const dims = CARD_DIMENSIONS[randomSpeaker.size];
         const margin = dims.width / 2 + 20;
@@ -53,7 +75,6 @@ export class SpeakerSpawner {
 
         const card = new SpeakerCard(this.scene, x, y, randomSpeaker);
         
-        // Smaller cards fall faster (harder to hit)
         const sizeSpeedBonus = randomSpeaker.size === 'small' ? 1.3 : randomSpeaker.size === 'large' ? 0.8 : 1;
         const speedMultiplier = (1 + (this.elapsedTime / 60000)) * sizeSpeedBonus;
         card.body!.setVelocityY(150 * speedMultiplier);
@@ -62,13 +83,30 @@ export class SpeakerSpawner {
         this.cardsSpawned++;
     }
 
-    getActiveCards(): SpeakerCard[] {
+    private spawnTrap() {
+        const randomTrap = Phaser.Utils.Array.GetRandom(TRAP_ITEMS);
+        const margin = 80;
+        const x = Phaser.Math.Between(margin, this.scene.scale.width - margin);
+        const y = -70;
+
+        const trap = new TrapCard(this.scene, x, y, randomTrap);
+
+        // Traps fall a bit slower to give time to recognize
+        const speedMultiplier = (1 + (this.elapsedTime / 60000)) * 0.85;
+        trap.body!.setVelocityY(130 * speedMultiplier);
+
+        this.activeCards.push(trap);
+        this.trapsSpawned++;
+    }
+
+    getActiveCards(): FallingCard[] {
         return this.activeCards;
     }
 
     getStats() {
         return {
             cardsSpawned: this.cardsSpawned,
+            trapsSpawned: this.trapsSpawned,
             cardsActive: this.activeCards.length,
             currentInterval: Math.max(this.maxDifficulty, this.spawnInterval - this.spawnRateIncrease),
             elapsedTime: Math.floor(this.elapsedTime / 1000)

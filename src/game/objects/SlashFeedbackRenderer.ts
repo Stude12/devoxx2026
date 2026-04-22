@@ -73,6 +73,26 @@ export class SlashFeedbackRenderer {
         });
     }
 
+    showPenaltyFeedback(x: number, y: number, message: string) {
+        const text = this.scene.add.text(x, y, message, {
+            fontFamily: 'Arial Black',
+            fontSize: 28,
+            color: '#FF0000',
+            stroke: '#FFFFFF',
+            strokeThickness: 4
+        }).setOrigin(0.5).setDepth(100);
+
+        this.scene.tweens.add({
+            targets: text,
+            y: y - 60,
+            scale: 1.3,
+            alpha: 0,
+            duration: 800,
+            ease: 'Quad.easeOut',
+            onComplete: () => text.destroy()
+        });
+    }
+
     destroy() {
         this.graphics.destroy();
     }

@@ -19,6 +19,10 @@ export class AudioManager {
         this.playSound('miss', 0.6);
     }
 
+    playTrapHit() {
+        this.playSound('trap', 0.7);
+    }
+
     playGameOver() {
         this.playSound('gameover', 0.7);
     }
@@ -61,6 +65,13 @@ export class AudioManager {
                 case 'miss':
                     oscillator.frequency.setValueAtTime(200, audioContext.currentTime);
                     oscillator.frequency.exponentialRampToValueAtTime(100, audioContext.currentTime + 0.2);
+                    break;
+                case 'trap':
+                    oscillator.type = 'sawtooth';
+                    oscillator.frequency.setValueAtTime(150, audioContext.currentTime);
+                    oscillator.frequency.exponentialRampToValueAtTime(80, audioContext.currentTime + 0.15);
+                    gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
                     break;
                 case 'gameover':
                     oscillator.frequency.setValueAtTime(300, audioContext.currentTime);

@@ -1,12 +1,13 @@
 import { EventBus } from '../EventBus';
 import { Scene, Math as PhaserMath, Cameras, GameObjects } from 'phaser';
-import { SpeakerSpawner } from '../objects/SpeakerSpawner';
+import { SpeakerSpawner, FallingCard } from '../objects/SpeakerSpawner';
 import { MicrophoneCursor } from '../objects/MicrophoneCursor';
 import { SlashDetector } from '../objects/SlashDetector';
 import { AudioManager } from '../objects/AudioManager';
 import { SlashFeedbackRenderer } from '../objects/SlashFeedbackRenderer';
 import { UIManager } from '../objects/UIManager';
 import { SpeakerCard } from '../objects/SpeakerCard';
+import { TrapCard } from '../objects/TrapCard';
 
 export class Game extends Scene
 {
@@ -17,6 +18,7 @@ export class Game extends Scene
     lives: number = 3;
     combo: number = 0;
     maxCombo: number = 0;
+    trapsSlashed: number = 0;
     spawner: SpeakerSpawner;
     cursor: MicrophoneCursor;
     slashDetector: SlashDetector;
@@ -37,6 +39,7 @@ export class Game extends Scene
         this.lives = 3;
         this.combo = 0;
         this.maxCombo = 0;
+        this.trapsSlashed = 0;
         this.gameActive = false;
 
         this.camera = this.cameras.main;
@@ -112,28 +115,34 @@ export class Game extends Scene
     private checkSlashesOnTrail() {
         const cards = this.spawner.getActiveCards();
         const segments = this.slashDetector.getSlashSegments();
-        const slashedCards: SpeakerCard[] = [];
+        const slashedSpeakers: SpeakerCard[] = [];
+        const slashedTraps: TrapCard[] = [];
 
         for (const card of cards) {
             if (card.isDestroyed || card.isSlashed || !card.scene) continue;
 
             if (this.isCardHitByTrail(card, segments)) {
-                slashedCards.push(card);
+                if ('isTrap' in card && card.isTrap) {
+                    slashedTraps.push(card as TrapCard);
+                } else {
+                    slashedSpeakers.push(card as SpeakerCard);
+                }
             }
         }
 
-        if (slashedCards.length > 0) {
+        // Handle slashed speaker cards (good!)
+        if (slashedSpeakers.length > 0) {
             this.audioManager.playSlash();
             
-            for (const card of slashedCards) {
+            for (const card of slashedSpeakers) {
                 card.slash();
                 this.updateScore(card.speaker.points);
                 this.incrementCombo();
             }
 
             this.feedbackRenderer.showComboFeedback(
-                slashedCards[0].x,
-                slashedCards[0].y - 60,
+                slashedSpeakers[0].x,
+                slashedSpeakers[0].y - 60,
                 this.combo
             );
 
@@ -141,9 +150,35 @@ export class Game extends Scene
                 this.audioManager.playCombo();
             }
         }
+
+        // Handle slashed traps (bad!)
+        for (const trap of slashedTraps) {
+            trap.slash();
+            this.trapsSlashed++;
+            this.audioManager.playTrapHit();
+            this.resetCombo();
+
+            if (trap.trapItem.penalty === 'life') {
+                this.feedbackRenderer.showPenaltyFeedback(
+                    trap.x, trap.y - 60,
+                    `❌ -${trap.trapItem.penaltyValue} VIE!`
+                );
+                for (let i = 0; i < trap.trapItem.penaltyValue; i++) {
+                    this.decrementLives();
+                }
+            } else {
+                const scorePenalty = Math.min(this.score, trap.trapItem.penaltyValue);
+                this.score = Math.max(0, this.score - trap.trapItem.penaltyValue);
+                this.uiManager.updateScore(this.score);
+                this.feedbackRenderer.showPenaltyFeedback(
+                    trap.x, trap.y - 60,
+                    `💥 -${scorePenalty} PTS!`
+                );
+            }
+        }
     }
 
-    private isCardHitByTrail(card: SpeakerCard, segments: Array<{ start: { x: number; y: number }; end: { x: number; y: number } }>): boolean {
+    private isCardHitByTrail(card: FallingCard, segments: Array<{ start: { x: number; y: number }; end: { x: number; y: number } }>): boolean {
         const toleranceX = card.cardWidth / 2;
         const toleranceY = card.cardHeight / 2;
 
@@ -195,7 +230,7 @@ export class Game extends Scene
         return t >= 0 && t <= 1 && u >= 0 && u <= 1;
     }
 
-    private distanceToLine(card: SpeakerCard, start: { x: number; y: number }, end: { x: number; y: number }): number {
+    private distanceToLine(card: FallingCard, start: { x: number; y: number }, end: { x: number; y: number }): number {
         const px = card.x;
         const py = card.y;
         const dx = end.x - start.x;

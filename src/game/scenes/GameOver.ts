@@ -58,9 +58,10 @@ export class GameOver extends Scene
         // Stats
         const gameScene = this.scene.get('Game') as any;
         const comboReached = gameScene.maxCombo || 0;
+        const trapsSlashed = gameScene.trapsSlashed || 0;
 
         const statsText = this.add.text(512, 300, 
-            `Max Combo: ${comboReached}x | Cards Slashed: ${Math.floor(finalScore / 100)}`, {
+            `Max Combo: ${comboReached}x | Traps: ${trapsSlashed} ⚠️`, {
             fontFamily: 'Arial', fontSize: 18, color: '#4ECDC4',
             align: 'center'
         }).setOrigin(0.5).setDepth(100)
