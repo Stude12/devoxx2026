@@ -78,7 +78,8 @@ export class Game extends Scene
             }
         });
 
-        // Listen for missed cards
+        // Listen for missed cards (use .off first to avoid stacking on restart)
+        this.events.off('card-missed');
         this.events.on('card-missed', () => {
             this.onCardMissed();
         });
@@ -172,6 +173,7 @@ export class Game extends Scene
     }
 
     private onCardMissed() {
+        if (this.lives <= 0) return;
         this.resetCombo();
         this.uiManager.showMissAlert();
         this.audioManager.playMiss();
@@ -226,6 +228,7 @@ export class Game extends Scene
         this.uiManager.updateLives(this.lives);
         
         if (this.lives <= 0) {
+            this.gameActive = false;
             this.time.delayedCall(500, () => {
                 this.changeScene();
             });
