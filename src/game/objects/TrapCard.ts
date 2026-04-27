@@ -62,16 +62,21 @@ export class TrapCard extends Phaser.Physics.Arcade.Sprite {
         graphics.strokeRoundedRect(4, 4, w - 8, h - 8, 9);
 
         // Corner danger triangles
+        const tri = Math.round(20 * this.scaleFactor);
         graphics.fillStyle(0xFF0000, 0.6);
-        graphics.fillTriangle(0, 0, 20, 0, 0, 20);
-        graphics.fillTriangle(w, 0, w - 20, 0, w, 20);
+        graphics.fillTriangle(0, 0, tri, 0, 0, tri);
+        graphics.fillTriangle(w, 0, w - tri, 0, w, tri);
 
-        const textureKey = 'trap-' + this.trapItem.id + '-' + Date.now();
+        const textureKey = `trap-${this.trapItem.id}-${w}x${h}`;
+        if (this.scene.textures.exists(textureKey)) {
+            this.scene.textures.remove(textureKey);
+        }
         graphics.generateTexture(textureKey, w, h);
         graphics.destroy();
 
         this.setTexture(textureKey);
         this.setDisplaySize(w, h);
+        this.body?.setSize(w, h);
 
         // Emoji
         const emojiFontSize = Math.round(36 * this.scaleFactor);
@@ -137,18 +142,20 @@ export class TrapCard extends Phaser.Physics.Arcade.Sprite {
             duration: 100,
             yoyo: true,
             onComplete: () => {
-                this.scene.tweens.add({
-                    targets: this,
-                    scaleY: 0,
-                    duration: 100,
-                    ease: 'Quad.easeIn'
-                });
+                if (this.scene && this.active) {
+                    this.scene.tweens.add({
+                        targets: this,
+                        scaleY: 0,
+                        duration: 100,
+                        ease: 'Quad.easeIn'
+                    });
+                }
             }
         });
 
         // Fade texts
         [this.emojiText, this.nameText, this.warningText].forEach(t => {
-            if (t) {
+            if (t && this.scene && this.active) {
                 this.scene.tweens.add({
                     targets: t,
                     alpha: 0,

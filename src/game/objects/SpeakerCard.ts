@@ -58,13 +58,17 @@ export class SpeakerCard extends Phaser.Physics.Arcade.Sprite {
         graphics.lineStyle(3, 0xFFFFFF);
         graphics.strokeRoundedRect(0, 0, w, h, 8);
 
-        // Generate texture from graphics
-        const textureKey = 'card-' + this.speaker.id;
+        // Generate texture from graphics — include dimensions in key for scaling
+        const textureKey = `card-${this.speaker.id}-${w}x${h}`;
+        if (this.scene.textures.exists(textureKey)) {
+            this.scene.textures.remove(textureKey);
+        }
         graphics.generateTexture(textureKey, w, h);
         graphics.destroy();
 
         this.setTexture(textureKey);
         this.setDisplaySize(w, h);
+        this.body?.setSize(w, h);
 
         // Add text on top - positions relative to card size
         const nameFontSize = this.cardWidth < 120 ? 9 : this.cardWidth > 160 ? 14 : 11;
